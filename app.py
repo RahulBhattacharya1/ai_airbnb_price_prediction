@@ -2,38 +2,32 @@ import streamlit as st
 import pandas as pd
 import joblib
 
-# Load model
-model = joblib.load("models/wine_model.pkl")
+st.title("NYC Airbnb Price Predictor")
 
-st.title("🍷 Wine Quality Classifier")
-st.write("Predict whether a wine is 'Good' (quality ≥ 7) or 'Not Good'.")
+@st.cache_resource
+def load_model():
+    return joblib.load("models/price_model.joblib.xz")
 
-# User inputs
-fixed_acidity = st.number_input("Fixed Acidity", 4.0, 16.0, 8.0)
-volatile_acidity = st.number_input("Volatile Acidity", 0.1, 1.6, 0.5)
-citric_acid = st.number_input("Citric Acid", 0.0, 1.0, 0.3)
-residual_sugar = st.number_input("Residual Sugar", 0.5, 15.5, 2.5)
-chlorides = st.number_input("Chlorides", 0.01, 0.61, 0.08)
-free_so2 = st.number_input("Free Sulfur Dioxide", 1, 72, 15)
-total_so2 = st.number_input("Total Sulfur Dioxide", 6, 289, 46)
-density = st.number_input("Density", 0.99, 1.01, 1.0)
-pH = st.number_input("pH", 2.9, 4.0, 3.3)
-sulphates = st.number_input("Sulphates", 0.3, 2.0, 0.6)
-alcohol = st.number_input("Alcohol", 8.0, 15.0, 10.0)
+pipe = load_model()
 
-# Prediction
-if st.button("Predict"):
-    input_data = pd.DataFrame([[
-        fixed_acidity, volatile_acidity, citric_acid, residual_sugar,
-        chlorides, free_so2, total_so2, density, pH, sulphates, alcohol
-    ]], columns=[
-        "fixed acidity", "volatile acidity", "citric acid", "residual sugar",
-        "chlorides", "free sulfur dioxide", "total sulfur dioxide", "density",
-        "pH", "sulphates", "alcohol"
-    ])
-    
-    prediction = model.predict(input_data)[0]
-    if prediction == 1:
-        st.success("✅ Good Quality Wine!")
-    else:
-        st.error("❌ Not a Good Quality Wine")
+# UI
+neighbourhood_group = st.selectbox("Neighbourhood Group", ["Manhattan","Brooklyn","Queens","Bronx","Staten Island"])
+room_type = st.selectbox("Room Type", ["Entire home/apt","Private room","Shared room"])
+minimum_nights = st.number_input("Minimum Nights", 1, 365, 3)
+number_of_reviews = st.number_input("Number of Reviews", 0, 1000, 10)
+reviews_per_month = st.number_input("Reviews per Month", 0.0, 30.0, 1.0)
+calculated_host_listings_count = st.number_input("Host Listings Count", 0, 500, 1)
+availability_365 = st.number_input("Availability (days/year)", 0, 365, 180)
+
+df_in = pd.DataFrame([{
+    "neighbourhood_group": neighbourhood_group,
+    "room_type": room_type,
+    "minimum_nights": float(minimum_nights),
+    "number_of_reviews": float(number_of_reviews),
+    "reviews_per_month": float(reviews_per_month),
+    "calculated_host_listings_count": float(calculated_host_listings_count),
+    "availability_365": float(availability_365),
+}])
+
+prediction = pipe.predict(df_in)[0]
+st.success(f"Predicted Price: ${prediction:.2f} per night")
